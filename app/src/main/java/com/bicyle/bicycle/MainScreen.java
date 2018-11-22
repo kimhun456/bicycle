@@ -38,8 +38,11 @@ import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class MainScreen extends AppCompatActivity {
+
+    private final static String TAG = "MainScreen";
     ListView listView;
     Toolbar mainToolbar;
     DrawerLayout dlDrawer;
@@ -47,7 +50,10 @@ public class MainScreen extends AppCompatActivity {
 
     ListView frdListView;
     EditText frdEditText;
-    ArrayList<String> frdList = new ArrayList<>();//데이터베이스에서 등록되어 있는 친구목록 저장
+
+    ArrayAdapter mFriendAdapter;
+    List<ProfDataSet> mProfileDataList = new ArrayList<>(); // get datas from freind relation table
+    ArrayList<String> mFriendList = new ArrayList<>(); // show for Listview
     Button frdSrchBtn;
 
     DatabaseReference mDatabase = FirebaseDatabase.getInstance().getReference();
@@ -65,12 +71,14 @@ public class MainScreen extends AppCompatActivity {
         Intent intent = getIntent();
         myProf = (ProfDataSet) intent.getSerializableExtra("prof");
 
-        mainToolbar = (Toolbar) findViewById(R.id.mainToolbar);
-        dlDrawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        mainToolbar = findViewById(R.id.mainToolbar);
+        dlDrawer = findViewById(R.id.drawer_layout);
 
         setSupportActionBar(mainToolbar);
         ActionBar actionBar = getSupportActionBar();
-        actionBar.setDisplayHomeAsUpEnabled(true);
+        if (actionBar != null) {
+            actionBar.setDisplayHomeAsUpEnabled(true);
+        }
 
         dtToggle = new ActionBarDrawerToggle(this, dlDrawer, R.string.app_name, R.string.app_name);
         dlDrawer.addDrawerListener(dtToggle);
@@ -78,7 +86,7 @@ public class MainScreen extends AppCompatActivity {
         final String[] mainFuncList = getResources().getStringArray(R.array.mainFuncList);
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, mainFuncList);
 
-        listView = (ListView) findViewById(R.id.drawer_menulist);
+        listView = findViewById(R.id.drawer_menulist);
         listView.setAdapter(adapter);
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -100,16 +108,15 @@ public class MainScreen extends AppCompatActivity {
             }
         });
 
-        frdSrchBtn = (Button) findViewById(R.id.frdSrchBtn);
-        final ArrayAdapter frdAdpt = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, frdList);
-        frdListView = (ListView) findViewById(R.id.frdList);
-        frdListView.setAdapter(frdAdpt);
+        frdSrchBtn = findViewById(R.id.frdSrchBtn);
+        mFriendAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, mFriendList);
+        frdListView = findViewById(R.id.frdList);
+        frdListView.setAdapter(mFriendAdapter);
         frdListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Log.d("TAG", "" + frdList.get(position));
                 Intent chatIntent = new Intent(MainScreen.this, UserChatActivity.class);
-                chatIntent.putExtra("friendUID", frdList.get(position));
+                chatIntent.putExtra("friendUID", mProfileDataList.get(position).getUid());
                 startActivity(chatIntent);
             }
         });
@@ -117,22 +124,23 @@ public class MainScreen extends AppCompatActivity {
         mDatabase.child("FrdRelship").child(myProf.getUid()).addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                List<String> friendUidList = new ArrayList<>();
                 for (DataSnapshot dataSnap : dataSnapshot.getChildren()) {
-                    String frdNick = dataSnap.getValue().toString();
-                    frdList.add(frdNick);
-                    frdAdpt.notifyDataSetChanged();
+                    String friendUid = dataSnap.getValue().toString();
+                    Log.d(TAG, "friend uid : " + friendUid);
+                    friendUidList.add(friendUid);
                 }
+                getFriendProfile(friendUidList);
             }
-
 
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
-
+                Toast.makeText(getApplicationContext(), "Get friend List fail", Toast.LENGTH_SHORT).show();
             }
         });
 
 
-        frdEditText = (EditText) findViewById(R.id.frdSearch);
+        frdEditText = findViewById(R.id.frdSearch);
         frdEditText.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -214,6 +222,30 @@ public class MainScreen extends AppCompatActivity {
                 });
             }
         });
+
+    }
+
+    private void getFriendProfile(List<String> friendUidList) {
+        for (String uid : friendUidList) {
+            Query query = mDatabase.child("Profiles").child(uid);
+            query.addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                    Log.d(TAG, "onDataChange");
+                    ProfDataSet profile = dataSnapshot.getValue(ProfDataSet.class);
+                    if (profile != null) {
+                        mProfileDataList.add(profile);
+                        mFriendList.add(profile.getNickname());
+                        mFriendAdapter.notifyDataSetChanged();
+                    }
+                }
+
+                @Override
+                public void onCancelled(@NonNull DatabaseError databaseError) {
+                    Log.d(TAG, "onCancelled");
+                }
+            });
+        }
 
     }
 

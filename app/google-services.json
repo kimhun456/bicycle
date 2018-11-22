@@ -78,6 +78,22 @@
           }
         },
         {
+          "client_id": "847461057030-aiov5tb880otr2hkoofthisgv8186iis.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bicyle.bicycle",
+            "certificate_hash": "7416dfca8fa671cd961d191124b5189913e9d64e"
+          }
+        },
+        {
+          "client_id": "847461057030-e35ofp11gg71tsq9746ajhknes67th04.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bicyle.bicycle",
+            "certificate_hash": "b10e52345306524f5c93906ac1f6b4c9ebcc8d75"
+          }
+        },
+        {
           "client_id": "847461057030-ausosq9kjfk8b91abolml1ul2er7lcse.apps.googleusercontent.com",
           "client_type": 3
         }
